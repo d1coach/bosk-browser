@@ -9,7 +9,7 @@ struct SleepPolicyTests {
     let hour: TimeInterval = 3600
 
     func sleep(_ tabs: [SleepPolicy.TabInfo], pressure: SleepPolicy.MemoryPressure = .normal) -> [UUID] {
-        SleepPolicy.tabsToSleep(tabs, now: now, idleLimit: hour, pressureIdleLimit: 300, pressure: pressure)
+        SleepPolicy.tabsToSleep(tabs, now: now, idleLimit: hour, pressure: pressure)
     }
 
     func tab(idle: TimeInterval) -> SleepPolicy.TabInfo {
@@ -73,8 +73,17 @@ struct SleepPolicyTests {
         let thirtyMinutes = tab(idle: 1800)
         let oneMinute = tab(idle: 60)
         #expect(sleep([tenMinutes, thirtyMinutes, oneMinute]).isEmpty)
-        #expect(sleep([tenMinutes, thirtyMinutes, oneMinute], pressure: .warning) == [thirtyMinutes.id, tenMinutes.id])
+        #expect(sleep([tenMinutes, thirtyMinutes, oneMinute], pressure: .warning) == [thirtyMinutes.id])
+        #expect(sleep([tenMinutes, oneMinute], pressure: .warning).isEmpty)
         #expect(sleep([tenMinutes, thirtyMinutes, oneMinute], pressure: .critical)
                 == [thirtyMinutes.id, tenMinutes.id, oneMinute.id])
+    }
+
+    @Test("A memory warning sleeps only the oldest tab idle for half the sleep time, because warnings can come for hours and must not cancel the user's sleep time")
+    func warningSleepsOneTab() {
+        let tabs = [tab(idle: 600), tab(idle: 2 * hour), tab(idle: 1800), tab(idle: 1799)]
+        #expect(sleep(tabs, pressure: .warning) == [tabs[1].id])
+        // The media check needs all the tabs that could be the one.
+        #expect(SleepPolicy.idleTabs(tabs, now: now, idleLimit: hour, pressure: .warning) == [tabs[1].id, tabs[2].id])
     }
 }

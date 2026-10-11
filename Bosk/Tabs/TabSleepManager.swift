@@ -58,12 +58,12 @@ final class TabSleepManager {
                 if let selected = store.selectedTab { selectedIDs.insert(selected.id) }
             }
             // First without media: only tabs that could sleep are asked about media, because
-            // each question can wake a suspended page.
+            // each question can wake a suspended page. All idle tabs, because under a warning
+            // only one sleeps, and the oldest can be playing media.
             let now = Date()
-            let candidates = SleepPolicy.tabsToSleep(
+            let candidates = SleepPolicy.idleTabs(
                 tabsByID.values.map { info(for: $0, isSelected: selectedIDs.contains($0.id), isPlayingMedia: false) },
-                now: now, idleLimit: idleLimit,
-                pressureIdleLimit: Defaults.tabSleepPressureIdleLimit, pressure: pressure)
+                now: now, idleLimit: idleLimit, pressure: pressure)
             guard !candidates.isEmpty else { return }
             // Ask the pages at the same time: each answer can take up to the timeout.
             let infos = await withTaskGroup(of: SleepPolicy.TabInfo.self) { group in
@@ -75,9 +75,7 @@ final class TabSleepManager {
                 for await info in group { infos.append(info) }
                 return infos
             }
-            let ids = SleepPolicy.tabsToSleep(infos, now: Date(), idleLimit: idleLimit,
-                                              pressureIdleLimit: Defaults.tabSleepPressureIdleLimit,
-                                              pressure: pressure)
+            let ids = SleepPolicy.tabsToSleep(infos, now: Date(), idleLimit: idleLimit, pressure: pressure)
             for id in ids {
                 // The user may have selected the tab while the media checks ran.
                 guard let tab = tabsByID[id], tab !== tab.store?.selectedTab else { continue }

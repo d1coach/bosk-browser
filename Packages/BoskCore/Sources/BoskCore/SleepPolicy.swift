@@ -37,13 +37,24 @@ public enum SleepPolicy {
 
     /// - Parameters:
     ///   - idleLimit: Normal sleep time (the user chooses it in Bosk; 30 minutes by default).
-    ///   - pressureIdleLimit: Sleep time when macOS reports memory pressure.
+    ///     When macOS reports a memory warning, half of it.
     /// - Returns: Tab IDs to sleep, oldest first.
     public static func tabsToSleep(_ tabs: [TabInfo], now: Date, idleLimit: TimeInterval,
-                                   pressureIdleLimit: TimeInterval, pressure: MemoryPressure) -> [UUID] {
+                                   pressure: MemoryPressure) -> [UUID] {
+        let ids = idleTabs(tabs, now: now, idleLimit: idleLimit, pressure: pressure)
+        // A warning can stay for hours, and macOS reports it again and again. If each one slept
+        // all tabs past half the sleep time, the user's sleep time would almost never apply.
+        // The timer sleeps the tabs past the user's sleep time.
+        return pressure == .warning ? Array(ids.prefix(1)) : ids
+    }
+
+    /// The tabs that can sleep and are idle for the limit, oldest first, with no count limit.
+    /// Use it to find the tabs to ask about media before `tabsToSleep`.
+    public static func idleTabs(_ tabs: [TabInfo], now: Date, idleLimit: TimeInterval,
+                                pressure: MemoryPressure) -> [UUID] {
         let limit: TimeInterval = switch pressure {
         case .normal: idleLimit
-        case .warning: pressureIdleLimit
+        case .warning: idleLimit / 2
         case .critical: 0
         }
         return tabs

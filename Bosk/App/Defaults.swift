@@ -30,8 +30,6 @@ enum Defaults {
 
     /// Debug builds only: replaces the idle time chosen in Settings (Preferences.tabSleepAfter).
     static let tabSleepIdleLimitOverride: TimeInterval? = debugOverride("BoskSleepAfterSeconds")
-    /// Idle time before sleep when macOS reports memory pressure.
-    static let tabSleepPressureIdleLimit: TimeInterval = 5 * 60
     static let tabSleepCheckInterval: TimeInterval = min(60, (tabSleepIdleLimitOverride ?? 60 * 60) / 2)
     /// Reloads of the selected tab after its page process stops, in one minute.
     static let crashReloadLimit = 3
