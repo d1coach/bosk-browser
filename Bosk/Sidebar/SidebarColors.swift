@@ -25,6 +25,8 @@ enum SidebarColors {
     }
     /// Tabs in a selection of many tabs (Cmd+click), other than the current tab.
     static let multiSelected = NSColor(name: nil) { _ in NSColor.controlAccentColor.withAlphaComponent(0.25) }
+    /// A tab the user just opened, for a short time (TabRowView).
+    static let newlyOpened = NSColor(name: nil) { _ in NSColor.controlAccentColor.withAlphaComponent(0.5) }
     static let tile = NSColor(name: nil) { appearance in
         appearance.isDark ? NSColor.white.withAlphaComponent(0.06) : NSColor.black.withAlphaComponent(0.05)
     }

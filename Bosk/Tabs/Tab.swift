@@ -27,6 +27,9 @@ final class Tab: NSObject {
     private(set) var themeColor: NSColor?
     /// The last time the user looked at this tab. Tab sleep uses it.
     var lastActive = Date()
+    /// When the user opened this tab (Cmd+T, a link in a new tab). The tab's row is highlighted for a short time.
+    /// Nil for tabs from a saved window.
+    var openedAt: Date?
     /// WebKit's saved back/forward list and scroll positions (`interactionState`).
     private(set) var sessionState: Data?
     /// A JPEG of the page, taken when the user leaves the tab. It is shown while a

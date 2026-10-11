@@ -216,7 +216,7 @@ final class SidebarView: NSView, NSTableViewDataSource, NSTableViewDelegate {
                           isCurrent: tab === store.selectedTab, isCompact: isCompact,
                           groupColor: group.map { SidebarColors.group($0.color) },
                           isLastInGroup: group != nil && self.tab(atRow: row + 1)?.groupID != group?.id,
-                          isMultiSelected: multiSelection.contains(tab.id))
+                          isMultiSelected: multiSelection.contains(tab.id), openedAt: tab.openedAt)
     }
 
     // MARK: Drag and drop

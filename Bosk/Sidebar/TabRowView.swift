@@ -9,6 +9,9 @@ final class TabRowView: NSTableRowView {
     var onClose: (() -> Void)?
 
     private let backgroundLayer = CALayer()
+    /// Over the tab's box after the user opens the tab. It fades out (see `updateHighlight`).
+    private let highlightLayer = CALayer()
+    private var openedAt: Date?
     private let iconLayer = CALayer()
     /// The color bar at the left edge of a grouped tab.
     private let groupBarLayer = CALayer()
@@ -34,6 +37,10 @@ final class TabRowView: NSTableRowView {
         backgroundLayer.cornerRadius = 8
         backgroundLayer.cornerCurve = .continuous
         layer?.addSublayer(backgroundLayer)
+        highlightLayer.cornerRadius = 8
+        highlightLayer.cornerCurve = .continuous
+        highlightLayer.opacity = 0
+        layer?.addSublayer(highlightLayer)
         iconLayer.contentsGravity = .resizeAspect
         iconLayer.cornerRadius = 3
         iconLayer.masksToBounds = true
@@ -66,8 +73,10 @@ final class TabRowView: NSTableRowView {
     ///   - groupColor: The color of the tab's group; nil for a tab with no group.
     ///   - isLastInGroup: The bar ends at this row.
     ///   - isMultiSelected: The tab is in the selection of many tabs (Cmd+click).
+    ///   - openedAt: When the user opened the tab; the row is highlighted for a short time after it.
     func configure(title: String, icon: NSImage?, isCurrent: Bool, isCompact: Bool, isNewTabRow: Bool = false,
-                   groupColor: NSColor? = nil, isLastInGroup: Bool = false, isMultiSelected: Bool = false) {
+                   groupColor: NSColor? = nil, isLastInGroup: Bool = false, isMultiSelected: Bool = false,
+                   openedAt: Date? = nil) {
         self.isCurrent = isCurrent
         self.isMultiSelected = isMultiSelected
         self.isCompact = isCompact
@@ -89,7 +98,33 @@ final class TabRowView: NSTableRowView {
         onClose = isNewTabRow ? nil : onClose
         setAccessibilityLabel(title)
         updateColors()
+        updateHighlight(openedAt: openedAt)
         needsLayout = true
+    }
+
+    /// The highlight stays for `highlightHold`, then fades out in `highlightFade`.
+    private static let highlightHold: TimeInterval = 3
+    private static let highlightFade: TimeInterval = 1
+
+    /// Rows are configured again on each title or list change, and are used again for other tabs.
+    /// So the animation starts from the time the tab opened, not from now, and only when it is not running.
+    private func updateHighlight(openedAt: Date?) {
+        let isSameTab = openedAt == self.openedAt
+        self.openedAt = openedAt
+        if isSameTab, highlightLayer.animation(forKey: "highlight") != nil { return }
+        highlightLayer.removeAnimation(forKey: "highlight")
+        let fade = Self.highlightFade
+        let remaining = openedAt.map { Self.highlightHold + fade + $0.timeIntervalSinceNow } ?? 0
+        guard remaining > 0 else { return }
+        let animation = CABasicAnimation(keyPath: "opacity")
+        // A row made again in the fade starts from the opacity it had.
+        animation.fromValue = min(1, remaining / fade)
+        animation.toValue = 0
+        animation.beginTime = CACurrentMediaTime() + max(0, remaining - fade)
+        animation.duration = min(fade, remaining)
+        // Before `beginTime`, the layer shows `fromValue`: the hold.
+        animation.fillMode = .backwards
+        highlightLayer.add(animation, forKey: "highlight")
     }
 
     override func layout() {
@@ -100,6 +135,7 @@ final class TabRowView: NSTableRowView {
         // In a group, the box is 2 pt smaller, so it stays inside the group's tinted box.
         backgroundLayer.frame = !isCompact ? bounds.insetBy(dx: 6, dy: 1)
             : groupColor == nil ? bounds.insetBy(dx: 8, dy: 2) : bounds.insetBy(dx: 10, dy: 4)
+        highlightLayer.frame = backgroundLayer.frame
         // Past the row edges, so the bars of the rows in a group join into one bar. On the last row,
         // the bar stops at the bottom of the tab's background. Rows are flipped: y = 0 is the top.
         let barBottom = isLastInGroup ? backgroundLayer.frame.maxY : bounds.height + 2
@@ -141,6 +177,7 @@ final class TabRowView: NSTableRowView {
             backgroundLayer.borderWidth = 0
             backgroundLayer.shadowOpacity = 0
         }
+        highlightLayer.backgroundColor = resolved(SidebarColors.newlyOpened)
         if let groupColor {
             groupBarLayer.backgroundColor = resolved(groupColor)
             groupTintLayer.backgroundColor = resolved(groupColor.withAlphaComponent(SidebarColors.groupTintAlpha))

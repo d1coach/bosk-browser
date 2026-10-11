@@ -106,6 +106,7 @@ final class TabStore {
     /// - Parameter after: The new tab goes below this tab, in its group; nil puts it at the end.
     func insert(_ tab: Tab, after: Tab?, select: Bool) {
         tab.store = self
+        tab.openedAt = Date()
         if let after, let index = tabs.firstIndex(where: { $0 === after }) {
             place(tab, at: index + 1, preferredGroup: after.groupID)
         } else {
