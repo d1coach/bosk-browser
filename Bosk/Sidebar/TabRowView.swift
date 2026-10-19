@@ -39,6 +39,7 @@ final class TabRowView: NSTableRowView {
         layer?.addSublayer(backgroundLayer)
         highlightLayer.cornerRadius = 8
         highlightLayer.cornerCurve = .continuous
+        highlightLayer.borderWidth = 1.5
         highlightLayer.opacity = 0
         layer?.addSublayer(highlightLayer)
         iconLayer.contentsGravity = .resizeAspect
@@ -178,6 +179,7 @@ final class TabRowView: NSTableRowView {
             backgroundLayer.shadowOpacity = 0
         }
         highlightLayer.backgroundColor = resolved(SidebarColors.newlyOpened)
+        highlightLayer.borderColor = resolved(SidebarColors.newlyOpenedRing)
         if let groupColor {
             groupBarLayer.backgroundColor = resolved(groupColor)
             groupTintLayer.backgroundColor = resolved(groupColor.withAlphaComponent(SidebarColors.groupTintAlpha))

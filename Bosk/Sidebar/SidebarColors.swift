@@ -25,8 +25,10 @@ enum SidebarColors {
     }
     /// Tabs in a selection of many tabs (Cmd+click), other than the current tab.
     static let multiSelected = NSColor(name: nil) { _ in NSColor.controlAccentColor.withAlphaComponent(0.25) }
-    /// A tab the user just opened, for a short time (TabRowView).
-    static let newlyOpened = NSColor(name: nil) { _ in NSColor.controlAccentColor.withAlphaComponent(0.5) }
+    /// A tab the user just opened, for a short time (TabRowView): a box with a ring, like the
+    /// current tab's, in the pastel yellow of tab groups. Light enough that the title stays readable.
+    static let newlyOpened = group(.yellow).withAlphaComponent(0.3)
+    static let newlyOpenedRing = group(.yellow).withAlphaComponent(0.9)
     static let tile = NSColor(name: nil) { appearance in
         appearance.isDark ? NSColor.white.withAlphaComponent(0.06) : NSColor.black.withAlphaComponent(0.05)
     }
