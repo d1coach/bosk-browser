@@ -3,8 +3,12 @@ import BoskCore
 import CryptoKit
 import WebKit
 
-/// Site icons, one per host, cached on disk as 64 px PNG files. Icons of private tabs
+/// Site icons, one per host, saved on disk as 64 px PNG files. Icons of private tabs
 /// stay in memory only.
+///
+/// The files are in the data folder, not in ~/Library/Caches: cleaner apps and macOS delete
+/// caches, and a sleeping tab gets its icon again only when it loads. So after a relaunch,
+/// most tabs showed the globe.
 @MainActor
 final class FaviconStore {
     static let shared = FaviconStore()
@@ -26,8 +30,9 @@ final class FaviconStore {
 
     private init() {
         memory.countLimit = 300
-        directory = URL.cachesDirectory.appending(path: "Bosk/Favicons", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        directory = Defaults.dataDirectory.appending(path: "Favicons", directoryHint: .isDirectory)
+        // One time: keep the icons of the old cache folder. Fails when the new folder exists.
+        try? FileManager.default.copyItem(at: URL.cachesDirectory.appending(path: "Bosk/Favicons"), to: directory)
     }
 
     func cachedIcon(for url: URL?) -> NSImage? {
@@ -94,7 +99,12 @@ final class FaviconStore {
               (response as? HTTPURLResponse)?.statusCode ?? 200 < 400,
               let source = NSImage(data: data), source.isValid,
               let png = source.resized(toPixels: 64)?.pngData else { return nil }
-        if let file { try? png.write(to: file, options: .atomic) }
+        if let file {
+            // Made here, not one time at launch: when the folder was deleted while Bosk ran,
+            // no icon was saved until the next launch.
+            try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try? png.write(to: file, options: .atomic)
+        }
         return png
     }
 
