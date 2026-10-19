@@ -31,7 +31,7 @@ extension ExtensionShim {
       const root = globalThis;
       // Taken now, not looked up at each use: a sandbox that later locks
       // the globals away (MetaMask's LavaMoat) would break the shim's own
-      // code that needs them — every fetch of a Request, every import.
+      // code that needs them - every fetch of a Request, every import.
       const { URL, FileReader, Response, Blob, File, DOMException, HTMLImageElement, HTMLAnchorElement, Element } = root;
       const chrome = root.chrome || root.browser;
       // A page's own world, where an extension's MAIN-world script runs with
@@ -95,8 +95,8 @@ extension ExtensionShim {
         const d = Object.getOwnPropertyDescriptor(root, key);
         if (!d || !d.configurable) continue;
         let value = root[key];
-        // A replacement that hides the APIs — a Proxy some extensions put
-        // there to keep them from other code (Proton Pass) — would hide them
+        // A replacement that hides the APIs - a Proxy some extensions put
+        // there to keep them from other code (Proton Pass) - would hide them
         // from WebKit too, and nothing would reach the extension again. A
         // replacement that still carries them is taken.
         const carries = (v) => { try { return !!(v && v.runtime && v.runtime.id); } catch (e) { return false; } };
@@ -105,10 +105,10 @@ extension ExtensionShim {
       // On a web page this is a content script: only Chrome's behaviour is
       // mended there, no API that Chrome doesn't give content scripts either.
       const inContent = typeof location !== "undefined" && !/^(chrome|webkit)-extension:$/.test(location.protocol);
-      // One of the extension's pages in a frame of a website — Vimium's bar,
+      // One of the extension's pages in a frame of a website - Vimium's bar,
       // the list iCloud Passwords opens under a field. WebKit runs it in the
       // website's process, which it trusts with no more than a content
-      // script: a single call to tabs, windows, scripting… and WebKit takes
+      // script: a single call to tabs, windows, scripting... and WebKit takes
       // the process for compromised and ends it. The page reloads, and a
       // frame that makes the call as it loads reloads it for ever. Chrome
       // gives such a frame everything, so here the worker makes those calls
@@ -119,7 +119,7 @@ extension ExtensionShim {
       })();
       const runtime = chrome.runtime;
 
-      // WebKit's objects are kept — WebKit finds an extension's listeners
+      // WebKit's objects are kept - WebKit finds an extension's listeners
       // through them, and a replacement would hide them. Members are set on
       // them instead: a method lives on the prototype, so an own property of
       // the same name takes its place.
@@ -134,7 +134,7 @@ extension ExtensionShim {
         try { Object.defineProperty(target, key, { value, configurable: true, writable: true, enumerable: true }); }
         catch (e) { try { target[key] = value; } catch (e2) {} }
       };
-      // Held from the start, before the extension's own code runs — its
+      // Held from the start, before the extension's own code runs - its
       // polyfills set things on these objects too.
       const spaces = new Set(Object.keys(chrome));
       for (let o = Object.getPrototypeOf(chrome); o && o !== Object.prototype; o = Object.getPrototypeOf(o)) Object.getOwnPropertyNames(o).forEach((k) => spaces.add(k));
@@ -220,32 +220,32 @@ extension ExtensionShim {
         };
       };
 
-      // Several onMessage listeners: WebKit takes the first one's return —
-      // usually undefined — as the answer, where Chrome waits for whichever
+      // Several onMessage listeners: WebKit takes the first one's return -
+      // usually undefined - as the answer, where Chrome waits for whichever
       // calls sendResponse or returns true. So the extension's listeners are
       // gathered behind a single one of WebKit's that follows Chrome's rule.
       const worker = typeof ServiceWorkerGlobalScope !== "undefined" && root instanceof ServiceWorkerGlobalScope;
       // The extension's background, whichever WebKit runs: the worker, or a
-      // page — it picks the page when a manifest names scripts as well.
+      // page - it picks the page when a manifest names scripts as well.
       const background = worker || (!inContent && typeof document !== "undefined" && (() => {
         try { return chrome.extension && typeof chrome.extension.getBackgroundPage === "function" && chrome.extension.getBackgroundPage() === root; }
         catch (e) { return false; }
       })());
       // A script a worker imports that isn't there: Chrome throws at once.
       // WebKit goes looking for it first, and while it does, runs the
-      // promises already waiting — code that notes "still starting" until
+      // promises already waiting - code that notes "still starting" until
       // its first promise settles (Tampermonkey) then thinks startup is
       // over, and refuses its own listeners. The extension's files are
       // known, so a missing one is refused the way Chrome refuses it, and
-      // an empty one — Tampermonkey's test.js — isn't fetched at all.
+      // an empty one - Tampermonkey's test.js - isn't fetched at all.
       // The static routing API of Chrome's service workers (install
-      // event.addRoutes) — a speed-up, so nothing is lost without it.
+      // event.addRoutes) - a speed-up, so nothing is lost without it.
       if (worker && typeof root.InstallEvent === "function" && !InstallEvent.prototype.addRoutes) {
         InstallEvent.prototype.addRoutes = () => Promise.resolve();
       }
       // WebKit runs an extension's worker on its web process's main thread,
       // and a worker's WebSocket waits there for the main thread to set up
-      // its channel — for itself, for ever: the worker and every page of the
+      // its channel - for itself, for ever: the worker and every page of the
       // extension freeze. 1Password opens one as a sign-in succeeds. So a
       // worker's socket is made by the browser (ExtensionSocket.swift) and
       // its frames come and go over a native port.
@@ -352,7 +352,7 @@ extension ExtensionShim {
       // its helper that way, and without the helper's answer asks for the
       // code again and again. So on such a port, what the extension posts
       // is held from its first message until the browser says the port has
-      // arrived — asked on the same port, as the socket asks — and then sent
+      // arrived - asked on the same port, as the socket asks - and then sent
       // in order. WebKit won't let connectNative be replaced in a worker, so
       // this is done on what every port shares, found through a port to the
       // browser itself; the question and the answer are kept from the
@@ -391,7 +391,7 @@ extension ExtensionShim {
               // port in the last two minutes; what arrives on one doesn't
               // count. The browser's word now and then is answered on the
               // port, so a worker holding a port to an app stays, as in
-              // Chrome — iCloud Passwords otherwise forgets it was paired.
+              // Chrome - iCloud Passwords otherwise forgets it was paired.
               if (m && m.__boskNative === "alive") { try { post.call(port, { __boskNative: "beat" }); } catch (e) {} }
             });
             add.call(port.onDisconnect, () => { state.held = null; });
@@ -436,7 +436,7 @@ extension ExtensionShim {
         }
       }
       // WebKit gives a worker the user agent of the last web page that set
-      // one — Safari's, as Bosk's tabs send — not the Chrome one the
+      // one - Safari's, as Bosk's tabs send - not the Chrome one the
       // extension's pages have. Code that picks its path by it then takes
       // the Safari one: Bitwarden's asks a Safari app for a reply thousands
       // of times a second and floods the browser.
@@ -502,7 +502,7 @@ extension ExtensionShim {
       const verdicts = new Map();
       const waiting = new Set();
       const present = new Set();
-      // Pages that are there but didn't hear the last message sent to all —
+      // Pages that are there but didn't hear the last message sent to all -
       // WebKit doesn't bring every message to every page. Not waited for
       // until they say something about one they heard.
       const deaf = new Set();
@@ -587,7 +587,7 @@ extension ExtensionShim {
             return true;
           }
           // A call one of the extension's pages in a website's frame can't
-          // make itself (see `embedded`), made here for it — and only for
+          // make itself (see `embedded`), made here for it - and only for
           // one of its pages: a content script gets no more than Chrome
           // gives it.
           if (message && message.__boskCall) {
@@ -613,10 +613,10 @@ extension ExtensionShim {
           // Nothing here answers it. In Chrome that leaves the question to
           // the extension's other pages and its worker; WebKit takes the
           // first reply from any of them, and an empty one from a page that
-          // only listens for something else — an offscreen document, an
-          // options page — would arrive before the worker's real answer. So
+          // only listens for something else - an offscreen document, an
+          // options page - would arrive before the worker's real answer. So
           // a page that has nothing to say steps aside, and says nothing
-          // only once everyone else has had ample time — or as soon as the
+          // only once everyone else has had ample time - or as soon as the
           // worker and every other open page have said they let it pass too,
           // or the worker sent it itself. Bitwarden's offscreen document
           // keeps its storage and answers a save with nothing: ten seconds
@@ -746,11 +746,11 @@ extension ExtensionShim {
 
       // WebKit unloads an extension's worker after half a minute idle, and
       // starts it again for an event only if it remembers a listener for
-      // it — which it does for messages, the worker's listener being in
+      // it - which it does for messages, the worker's listener being in
       // place from its first line (see gather).
       //
       // A reply that never came is answered Chrome's way: in callback
-      // form, with lastError set — WebKit calls back with nothing and no
+      // form, with lastError set - WebKit calls back with nothing and no
       // error, and code that pings a tab to see if its script is there
       // waits for ever.
       const replied = (promise, callback, gone) => {
@@ -759,16 +759,16 @@ extension ExtensionShim {
           (e) => withLastError(e, callback));
       };
       let checkWorker = () => {};
-      // When the worker was last heard from — a reply, a port message.
+      // When the worker was last heard from - a reply, a port message.
       let heard = 0;
       if (runtime && typeof runtime.sendMessage === "function") {
         const page = typeof document !== "undefined";
-        // WebKit's own, looked up at each call — not held from the page's
+        // WebKit's own, looked up at each call - not held from the page's
         // first moment, when the page isn't yet the tab or popup it will be.
         const original = Object.getPrototypeOf(runtime).sendMessage;
         const send = (...args) => original.apply(chrome.runtime, args);
-        // WebKit can also lose a worker without knowing — its process
-        // stopped along with a tab's — and then answers every message with
+        // WebKit can also lose a worker without knowing - its process
+        // stopped along with a tab's - and then answers every message with
         // nothing, for good. So after waking it, a page asks the worker
         // itself (its shim answers) at most every few seconds; no answer,
         // and the browser takes the extension up afresh.
@@ -781,7 +781,7 @@ extension ExtensionShim {
           if (!hasWorker || asking || Date.now() - heard < 5000) return;
           asking = true;
           // Asked three times, a second apart, then once more after waking
-          // it — only then taken for gone: a restart has consequences
+          // it - only then taken for gone: a restart has consequences
           // (welcome pages, a popup loading again), and a question can go
           // unanswered for reasons that pass. Waking a worker that runs
           // starts it over, so that is kept for last.
@@ -816,7 +816,7 @@ extension ExtensionShim {
         });
       }
       // A message for a tab reaches only its content scripts in WebKit. In
-      // Chrome it reaches the extension's own pages framed in that tab too —
+      // Chrome it reaches the extension's own pages framed in that tab too -
       // 1Password's sign-in banner is one, told this way to offer a passkey
       // instead of a password, and without it the site's request failed. So
       // the worker hands it to those frames as well, and the first answer
@@ -1020,8 +1020,8 @@ extension ExtensionShim {
       }
 
       // Members Chrome has on the namespaces WebKit has too, that WebKit
-      // leaves out. Plenty are read at the top of a worker — an enum, an
-      // event to listen to — where one missing member is a TypeError that
+      // leaves out. Plenty are read at the top of a worker - an enum, an
+      // event to listen to - where one missing member is a TypeError that
       // stops the whole worker before it has done anything.
       const fill = (name, members) => {
         const target = chrome[name];
@@ -1065,8 +1065,8 @@ extension ExtensionShim {
       // themselves out by that (Bitwarden, Proton Pass: or else they fill
       // the window as if in a tab).
       if (typeof document !== "undefined") {
-        // Known at once for the manifest's popup page — pages lay themselves
-        // out before any answer can come back — and settled by what WebKit
+        // Known at once for the manifest's popup page - pages lay themselves
+        // out before any answer can come back - and settled by what WebKit
         // says of the tab.
         let popup = (() => {
           try {
@@ -1136,7 +1136,7 @@ extension ExtensionShim {
       });
       if (chrome.tabs) {
         // Moving, sleeping and bringing forward tabs, by where they are in
-        // the row — the one thing both sides agree on.
+        // the row - the one thing both sides agree on.
         const settle = () => new Promise((r) => setTimeout(r, 60));
         const byIndex = (api) => async (ids, extra) => {
           const out = [];
@@ -1178,7 +1178,7 @@ extension ExtensionShim {
       }
       fill("windows", {
         // Chrome's, and not WebKit's: an extension subscribing to it at
-        // start — Session Buddy, inside a try — threw there and never
+        // start - Session Buddy, inside a try - threw there and never
         // reached the rest, its button's listener included. Never fired:
         // a window's bounds are read when they are asked for.
         onBoundsChanged: event(),
@@ -1189,7 +1189,7 @@ extension ExtensionShim {
         managed: { get: resolve({}), getBytesInUse: resolve(0), onChanged: event() },
         AccessLevel: { TRUSTED_CONTEXTS: "TRUSTED_CONTEXTS", TRUSTED_AND_UNTRUSTED_CONTEXTS: "TRUSTED_AND_UNTRUSTED_CONTEXTS" },
       });
-      // Items built with Object.create(null) — Chrome stores them, WebKit
+      // Items built with Object.create(null) - Chrome stores them, WebKit
       // throws that an object is expected.
       const plainItems = (items) => items && typeof items === "object" && Object.getPrototypeOf(items) !== Object.prototype ? Object.assign({}, items) : items;
       // (Bosk's own, not from Search.) In Chrome, a change to storage reaches
@@ -1379,8 +1379,8 @@ extension ExtensionShim {
       fill("contextMenus", { ContextType: contextTypes, ItemType: enumOf("normal", "checkbox", "radio", "separator") });
       fill("menus", { ContextType: contextTypes, ItemType: enumOf("normal", "checkbox", "radio", "separator") });
 
-      // Rules WebKit can't carry out — a header it doesn't know how to set,
-      // say — are refused one by one, where Chrome would take them all. The
+      // Rules WebKit can't carry out - a header it doesn't know how to set,
+      // say - are refused one by one, where Chrome would take them all. The
       // rest still go in: one rule Bosk can't honour shouldn't cost an
       // extension every other rule, or its startup.
       const dnr = chrome.declarativeNetRequest;
@@ -1425,7 +1425,7 @@ extension ExtensionShim {
               if (!at || !Array.isArray(opts.addRules) || left <= 0) throw e;
               const index = Number(at[1]);
               const rule = opts.addRules[index];
-              try { native("debug.error", ["declarativeNetRequest: rule " + (rule && rule.id) + " left out — " + e.message]).catch(() => {}); } catch (x) {}
+              try { native("debug.error", ["declarativeNetRequest: rule " + (rule && rule.id) + " left out \u2014 " + e.message]).catch(() => {}); } catch (x) {}
               return attempt({ ...opts, addRules: opts.addRules.filter((_, i) => i !== index) }, left - 1);
             }
           };
@@ -1435,7 +1435,7 @@ extension ExtensionShim {
         });
       }
 
-      // Context menu entries for places Bosk has no menu for — the old
+      // Context menu entries for places Bosk has no menu for - the old
       // toolbar button contexts are the button's menu now, and there is no
       // app launcher at all.
       for (const name of ["contextMenus", "menus"]) {
@@ -1451,9 +1451,9 @@ extension ExtensionShim {
         put(menus, "update", (id, props, callback) => update(id, mend(props), callback));
       }
 
-      // webRequest listeners with options WebKit doesn't take — blocking
+      // webRequest listeners with options WebKit doesn't take - blocking
       // needs a policy-installed extension in Chrome's MV3 too; extra headers
-      // WebKit reports anyway — are added with the options it does take.
+      // WebKit reports anyway - are added with the options it does take.
       if (chrome.webRequest) for (const key of Object.keys(chrome.webRequest)) {
         const target = chrome.webRequest[key];
         if (!/^on[A-Z]/.test(key) || !target || typeof target.addListener !== "function") continue;
@@ -1469,7 +1469,7 @@ extension ExtensionShim {
           }
           // Added after a worker's startup, WebKit refuses it; Chrome takes
           // it. It isn't heard, but neither does it stop the code that added
-          // it — a listener for every request can't join the late list
+          // it - a listener for every request can't join the late list
           // (it would wake the worker for all of them).
           const late = (e) => { if (!/startup/i.test(String(e && e.message))) throw e; };
           try {
@@ -1481,7 +1481,7 @@ extension ExtensionShim {
       }
 
       // Tabs as Chrome describes them. Every tab has a groupId (-1 when in
-      // no group — Bosk has none), which code tests before anything else;
+      // no group - Bosk has none), which code tests before anything else;
       // and with the "tabs" permission an extension sees every tab's address
       // and title, where WebKit shows them only for sites it has host
       // access to.
@@ -1600,8 +1600,8 @@ extension ExtensionShim {
         }));
       }
 
-      // chrome.userScripts — what Tampermonkey, Violentmonkey and the
-      // advanced rules of the ad blockers run on — carried out through
+      // chrome.userScripts - what Tampermonkey, Violentmonkey and the
+      // advanced rules of the ad blockers run on - carried out through
       // WebKit's registered content scripts. The browser writes each script
       // into a file of the extension's (content scripts come from files),
       // wrapped so the globs Chrome takes are honoured and, for Chrome's
@@ -1718,7 +1718,7 @@ extension ExtensionShim {
       }
 
       // WebKit says "install" again when an extension is taken up afresh in
-      // the same session — after a Reload, or a worker brought back — where
+      // the same session - after a Reload, or a worker brought back - where
       // Chrome says "update"; extensions open their welcome page on
       // "install". The first one of a session is marked, and any later one
       // told as the update it is.
@@ -1744,7 +1744,7 @@ extension ExtensionShim {
       // one added later, where Chrome takes it. So for every event this
       // extension's code mentions, the worker has one listener of WebKit's
       // from the start, and a late one joins the list behind it. Events it
-      // never mentions still take late listeners without throwing — they
+      // never mentions still take late listeners without throwing - they
       // just aren't heard. (Request events are left alone: a listener for
       // all of them would wake the worker for every request.)
       if (background) {
@@ -1780,8 +1780,8 @@ extension ExtensionShim {
       }
 
       // What one of the extension's pages or its worker posts to another
-      // before their port has opened — at once after connect, or from inside
-      // onConnect — WebKit keeps until the other end takes the port, then
+      // before their port has opened - at once after connect, or from inside
+      // onConnect - WebKit keeps until the other end takes the port, then
       // hands on once for each end's world: between two of the extension's
       // own, the same world, so twice. iCloud Passwords' popup asks its
       // worker for its state that way, and was answered twice. So between
@@ -1849,7 +1849,7 @@ extension ExtensionShim {
       // then each message to it goes nowhere, for good, and only a load of the whole extension
       // helps (ExtensionManager.revive). So the worker holds a port to Bosk and answers its
       // pings on it. A ping without an answer, or the port gone, and Bosk loads the extension
-      // again. (The shim's connectNative leaves a port named "bosk.…" as it is.)
+      // again. (The shim's connectNative leaves a port named "bosk...." as it is.)
       if (worker && runtime && typeof runtime.connectNative === "function") {
         const hold = () => {
           let port;
@@ -1863,8 +1863,8 @@ extension ExtensionShim {
       if (chrome.i18n && !chrome.i18n.detectLanguage) put(chrome.i18n, "detectLanguage", call("i18n.detectLanguage"));
       if (runtime && !runtime.getContexts) put(runtime, "getContexts", call("runtime.getContexts"));
 
-      // Chrome's old FileSystem API — requestFileSystem, entries, FileWriter and
-      // `filesystem:` URLs — which WebKit never had. Extensions still save to it:
+      // Chrome's old FileSystem API - requestFileSystem, entries, FileWriter and
+      // `filesystem:` URLs - which WebKit never had. Extensions still save to it:
       // GoFullPage writes every capture there and shows, copies and downloads it
       // by a `filesystem:<origin>/persistent/...` URL it builds itself. So it is
       // rebuilt on the origin private file system: PERSISTENT and TEMPORARY are
@@ -1989,7 +1989,7 @@ extension ExtensionShim {
               if (!segs.length) throw fail("InvalidModificationError", "The root directory cannot be removed.");
               const handle = await need(this._type, segs);
               // Not recursive: a directory with something in it is refused, as in
-              // Chrome — WebKit says UnknownError there, Chrome InvalidModificationError.
+              // Chrome - WebKit says UnknownError there, Chrome InvalidModificationError.
               await (await walk(this._type, segs.slice(0, -1))).removeEntry(segs[segs.length - 1]).catch((e) => {
                 throw handle.kind === "directory" && e.name !== "NotFoundError" ? fail("InvalidModificationError", "The directory is not empty.") : e;
               });
@@ -2118,7 +2118,7 @@ extension ExtensionShim {
         }
 
         // One write or truncate at a time, each a writable opened on the file as it
-        // is and closed — OPFS commits on close — with Chrome's events around it:
+        // is and closed - OPFS commits on close - with Chrome's events around it:
         // writestart, write, writeend, or error then writeend.
         class FileWriter extends EventTarget {
           constructor(entry, handle, length) {
@@ -2275,8 +2275,8 @@ extension ExtensionShim {
         if (!root.FileWriter) define(root, "FileWriter", FileWriter);
 
         // Where a filesystem: URL is loaded. An image or link gets the blob: URL
-        // once it's made — at once when it already was, so a src set again stays
-        // put — and reads back the filesystem: URL, as in Chrome. A file that
+        // once it's made - at once when it already was, so a src set again stays
+        // put - and reads back the filesystem: URL, as in Chrome. A file that
         // isn't there leaves the URL as it was, so the image fails as it would.
         const shown = new WeakMap();
         const hook = (proto, prop) => {
@@ -2360,11 +2360,11 @@ extension ExtensionShim {
       })();
 
       // Errors in an extension's own pages and worker are told to the browser,
-      // which lists them — the only window onto a worker there is.
+      // which lists them - the only window onto a worker there is.
       if (root.addEventListener) {
         const tell = (text) => { try { native("debug.error", [String(text).slice(0, 2000)]).catch(() => {}); } catch (e) {} };
         root.addEventListener("error", (e) => tell((e.message || "error") + " @ " + String(e.filename || "").split("/").slice(3).join("/") + ":" + e.lineno));
-        root.addEventListener("unhandledrejection", (e) => tell("unhandled: " + (e.reason && ((e.reason.message || "") + " — " + (e.reason.stack || "")) || e.reason)));
+        root.addEventListener("unhandledrejection", (e) => tell("unhandled: " + (e.reason && ((e.reason.message || "") + " \u2014 " + (e.reason.stack || "")) || e.reason)));
         // (Bosk's own.) In a Debug build, the status of each request an extension page or worker
         // makes, and the server's answer when it fails: a login error that the extension hides
         // shows here. Never what is sent, and never a successful answer (it can hold tokens).
@@ -2412,7 +2412,7 @@ extension ExtensionShim {
             console[level] = (...args) => {
               original(...args);
               if (told++ < 60) tell("console." + level + ": " + args.map((a) => {
-                if (a instanceof Error) return a.message + " — " + (a.stack || "");
+                if (a instanceof Error) return a.message + " \u2014 " + (a.stack || "");
                 try { return typeof a === "string" ? a : JSON.stringify(a); } catch (e) { return String(a); }
               }).join(" "));
             };

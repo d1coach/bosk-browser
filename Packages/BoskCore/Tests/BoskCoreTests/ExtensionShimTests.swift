@@ -84,6 +84,18 @@ struct ExtensionShimTests {
         #expect(try read("popup/index.html") == #"<html><head><script src="/bosk-shim.js"></script><title>x</title></head></html>"#)
     }
 
+    /// WebKit gives each web process its own copy of each content script, one for each content
+    /// script entry and granted host pattern: 7 copies of the shim in each tab of the Debug profile.
+    /// A script with a character above U+00FF is kept as UTF-16, 2 bytes a character, so those
+    /// copies were 1.9 MB a tab instead of 0.95 MB. In the shim, write "-" or "—", not "—".
+    @Test("The shim WebKit reads is Latin-1, so each tab's copies of it take 1 byte a character")
+    func shimIsLatin1() throws {
+        try worker()
+        try ExtensionShim.prepare(folder, chromeVersion: "141.0.0.0")
+        let shim = try read("bosk-shim.js")
+        #expect(shim.unicodeScalars.allSatisfy { $0.value <= 0xFF })
+    }
+
     @Test("A Debug build's shim reports console errors, and a release build's shim does not")
     func verboseOnlyWhenAsked() throws {
         try worker()
