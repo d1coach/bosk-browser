@@ -49,6 +49,16 @@ enum PerfHarness {
             }
             NSLog("Bosk: test popup of %@", id)
             context.performAction(for: controller.store.selectedTab)
+            // `-BoskOpenPopupCycles <n>`: closes and opens it again, n times in all, to see what
+            // a closed popup leaves behind in the extension's process.
+            let cycles = UserDefaults.standard.integer(forKey: "BoskOpenPopupCycles")
+            for cycle in 1..<max(cycles, 1) {
+                try? await Task.sleep(for: .seconds(6))
+                context.action(for: controller.store.selectedTab)?.closePopup()
+                try? await Task.sleep(for: .seconds(2))
+                NSLog("Bosk: test popup of %@, cycle %d", id, cycle + 1)
+                context.performAction(for: controller.store.selectedTab)
+            }
         }
     }
 

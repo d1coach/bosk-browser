@@ -155,6 +155,45 @@ extension ExtensionShim {
         }
         for (const sub of ["local", "sync", "session", "managed"]) { try { if (ns[sub] && typeof ns[sub] === "object") kept.add(ns[sub]); } catch (e) {} }
       }
+      // (Bosk's own.) WebKit keeps the listeners a page added to chrome.* events after the
+      // page has closed, and a listener keeps its whole page. Each Bitwarden popup that closed
+      // left about 30 MB in the extension's process: 4.4 GB after three days (2026-10-19).
+      // Bitwarden removes its listeners at pagehide in Safari, but it finds Chrome in the user
+      // agent the shim gives it (below). So when an extension's page goes, its listeners are
+      // removed here. Done on what WebKit's events share, before anything here or in the
+      // extension takes their methods, so every listener is seen.
+      if (!inContent && typeof document !== "undefined" && typeof root.addEventListener === "function") {
+        const live = new Map();
+        const owners = new Set();
+        for (const target of kept) {
+          let o = target;
+          while (o && !Object.prototype.hasOwnProperty.call(o, "addListener")) o = Object.getPrototypeOf(o);
+          if (o && typeof o.addListener === "function" && typeof o.removeListener === "function") owners.add(o);
+        }
+        for (const owner of owners) {
+          const add = owner.addListener, remove = owner.removeListener;
+          put(owner, "addListener", function (listener, ...rest) {
+            const result = add.call(this, listener, ...rest);
+            if (typeof listener === "function") {
+              let entry = live.get(this);
+              if (!entry) live.set(this, entry = { remove, listeners: new Set() });
+              entry.listeners.add(listener);
+            }
+            return result;
+          });
+          put(owner, "removeListener", function (listener, ...rest) {
+            const entry = live.get(this);
+            if (entry) entry.listeners.delete(listener);
+            return remove.call(this, listener, ...rest);
+          });
+        }
+        // Not for a page kept to come back (back-forward cache): it needs its listeners then.
+        root.addEventListener("pagehide", (e) => {
+          if (e && e.persisted) return;
+          for (const [event, entry] of live) for (const listener of entry.listeners) { try { entry.remove.call(event, listener); } catch (e2) {} }
+          live.clear();
+        });
+      }
       const withLastError = (error, callback) => {
         put(runtime, "lastError", { message: String(error && error.message || error) });
         try { callback(); } finally { try { delete runtime.lastError; } catch (e) {} }

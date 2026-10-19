@@ -162,6 +162,57 @@ struct ExtensionShimTests {
         #expect(try storageReports(error: "Failed to open extension storage database", protocol: "https:").isEmpty)
     }
 
+    /// Runs the prepared shim as an extension page, with stub events that share one prototype,
+    /// as WebKit's do. The page adds listeners, then `pagehide` comes with `persisted`.
+    /// Returns how many listeners the stub events still hold.
+    func listenersLeftAfterPagehide(persisted: Bool) throws -> Int {
+        try worker()
+        try ExtensionShim.prepare(folder, chromeVersion: "141.0.0.0")
+        let context = try #require(JSContext())
+        context.evaluateScript("""
+        function Ev() { this.held = new Set(); }
+        Ev.prototype.addListener = function (f) { this.held.add(f); };
+        Ev.prototype.removeListener = function (f) { this.held.delete(f); };
+        Ev.prototype.hasListener = function (f) { return this.held.has(f); };
+        var pagehide = [];
+        globalThis.document = {};
+        globalThis.addEventListener = (type, f) => { if (type === "pagehide") pagehide.push(f); };
+        globalThis.location = { protocol: "webkit-extension:", pathname: "/popup/index.html", origin: "x", href: "x/popup/index.html" };
+        globalThis.chrome = {
+          runtime: { id: "x", getManifest: () => ({ manifest_version: 3 }), getURL: (p) => "x/" + p,
+            sendNativeMessage: () => Promise.resolve({ value: null }),
+            sendMessage: () => Promise.resolve(undefined), onMessage: new Ev(), onConnect: new Ev() },
+          tabs: { onUpdated: new Ev() },
+          storage: { onChanged: new Ev() },
+        };
+        var events = [chrome.runtime.onMessage, chrome.runtime.onConnect, chrome.tabs.onUpdated, chrome.storage.onChanged];
+        """)
+        context.evaluateScript(try read("bosk-shim.js"))
+        #expect(context.exception == nil, "\(context.exception?.toString() ?? "")")
+        context.evaluateScript("""
+        chrome.runtime.onMessage.addListener(() => {});
+        chrome.tabs.onUpdated.addListener(() => {});
+        chrome.storage.onChanged.addListener(() => {});
+        const removed = () => {};
+        chrome.tabs.onUpdated.addListener(removed);
+        chrome.tabs.onUpdated.removeListener(removed);
+        """)
+        #expect(context.evaluateScript("events.reduce((n, e) => n + e.held.size, 0)").toInt32() >= 3)
+        context.evaluateScript("pagehide.forEach((f) => f({ persisted: \(persisted) }))")
+        #expect(context.exception == nil, "\(context.exception?.toString() ?? "")")
+        return Int(context.evaluateScript("events.reduce((n, e) => n + e.held.size, 0)").toInt32())
+    }
+
+    @Test("A closed extension page leaves no listener with WebKit, which would keep the whole page (30 MB a Bitwarden popup)")
+    func closedPageLetsGoOfListeners() throws {
+        #expect(try listenersLeftAfterPagehide(persisted: false) == 0)
+    }
+
+    @Test("A page kept in the back-forward cache keeps its listeners, so it still works when it comes back")
+    func cachedPageKeepsListeners() throws {
+        #expect(try listenersLeftAfterPagehide(persisted: true) >= 3)
+    }
+
     @Test("A worker path outside the package is not read or written")
     func workerOutsideFolderIsLeftAlone() throws {
         #expect(ExtensionShim.inside("../outside.js", of: folder) == nil)
