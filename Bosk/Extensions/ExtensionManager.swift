@@ -228,7 +228,8 @@ final class ExtensionManager: NSObject {
         context.uniqueIdentifier = record.id
         context.grantedPermissions = Self.permissions(record.grantedPermissions)
         context.deniedPermissions = Self.permissions(record.deniedPermissions)
-        context.grantedPermissionMatchPatterns = Self.patterns(record.grantedMatchPatterns)
+        // Each granted pattern adds a copy of the content scripts to each web process (MatchPatternCover).
+        context.grantedPermissionMatchPatterns = Self.patterns(MatchPatternCover.uncovered(record.grantedMatchPatterns))
         context.deniedPermissionMatchPatterns = Self.patterns(record.deniedMatchPatterns)
         // The shim reaches Bosk through native messages.
         context.setPermissionStatus(.grantedExplicitly, for: .nativeMessaging)
