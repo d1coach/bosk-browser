@@ -98,7 +98,7 @@ enum WebViewFactory {
         let webView = BoskWebView(frame: .zero, configuration: configuration ?? makeConfiguration(privateStore: privateStore))
         webView.allowsBackForwardNavigationGestures = true
         webView.allowsMagnification = true
-        PageBackground.hideUntilFirstContent(in: webView)
+        PageBackground.watchFirstContent(in: webView)
         #if DEBUG
         webView.isInspectable = true
         #endif

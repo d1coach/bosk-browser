@@ -68,19 +68,20 @@ enum WebInspector {
     }
 }
 
-/// In Dark Mode, a new web view shows the dark window color, not white, until its first page has
-/// content: a cover view is over it until then. WebKit has no public event for the first content, so this
-/// uses the private rendering progress events. Without them, there is no cover, and the view is white as before.
+/// WebKit has no public event for a page's first content, so this uses the private rendering progress
+/// events. Two covers use them: in Dark Mode a cover view keeps a new web view at the dark window color,
+/// not white, until its first page has content; and a woken tab keeps its picture until the page draws.
+/// Without the private events there is no cover, and the view is white as before.
 @MainActor
 enum PageBackground {
     /// `_WKRenderingProgressEventFirstVisuallyNonEmptyLayout`. It comes when the page has text or
     /// images, after its style sheets load. The first layout (1 << 0) comes before the page has content.
     static let firstVisuallyNonEmptyLayout: UInt = 1 << 1
 
-    static func hideUntilFirstContent(in webView: WKWebView) {
-        guard NSApp.effectiveAppearance.isDark,
-              webView.responds(to: NSSelectorFromString("_setObservedRenderingProgressEvents:")) else { return }
+    static func watchFirstContent(in webView: WKWebView) {
+        guard webView.responds(to: NSSelectorFromString("_setObservedRenderingProgressEvents:")) else { return }
         webView.setValue(firstVisuallyNonEmptyLayout, forKey: "observedRenderingProgressEvents")
+        guard NSApp.effectiveAppearance.isDark else { return }
         let cover = CoverView(frame: webView.bounds)
         cover.autoresizingMask = [.width, .height]
         webView.addSubview(cover)

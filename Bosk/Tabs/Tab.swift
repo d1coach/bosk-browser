@@ -8,7 +8,9 @@ import WebKit
 final class Tab: NSObject {
     enum Change {
         /// `progress` is only `estimatedProgress`; it changes many times for each load.
+        /// `firstContent` is the page's first layout with text or images; the load goes on after it.
         case title, url, favicon, themeColor, loading, progress, navigationState, sleepState, hoveredLink
+        case firstContent
     }
 
     let id: UUID
@@ -226,7 +228,7 @@ final class Tab: NSObject {
         if let webView { detach(webView) }
     }
 
-    private func notify(_ change: Change) {
+    func notify(_ change: Change) {
         store?.tabDidChange(self, change)
     }
 }

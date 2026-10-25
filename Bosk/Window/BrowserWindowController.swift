@@ -462,7 +462,7 @@ extension BrowserWindowController: TabStoreDelegate {
         switch change {
         case .title, .favicon, .themeColor, .sleepState, .url:
             sidebar.update(tab)
-        case .loading, .progress, .navigationState, .hoveredLink:
+        case .loading, .progress, .navigationState, .hoveredLink, .firstContent:
             break
         }
         guard tab === store.selectedTab else { return }
@@ -475,7 +475,10 @@ extension BrowserWindowController: TabStoreDelegate {
         }
         if change == .title || change == .url { window?.title = windowTitle(for: tab) }
         if change == .sleepState { container.show(tab.webView) }
-        // Keep the page picture until the woken page has loaded.
+        // Keep the page picture until the woken page draws. The end of the load is the backstop:
+        // a page can draw nothing, and WebKit may not send the private rendering progress event.
+        // The load itself can stay open long after the page is on screen, so it cannot be the only test.
+        if change == .firstContent { container.hideSnapshot() }
         if change == .loading, !tab.isLoading { container.hideSnapshot() }
         topBar.update(with: tab)
     }

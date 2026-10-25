@@ -93,7 +93,9 @@ extension Tab: WKNavigationDelegate {
 
     @objc(_webView:renderingProgressDidChange:)
     func webView(_ webView: WKWebView, renderingProgressDidChange events: UInt) {
-        if events & PageBackground.firstVisuallyNonEmptyLayout != 0 { PageBackground.show(in: webView) }
+        guard events & PageBackground.firstVisuallyNonEmptyLayout != 0 else { return }
+        PageBackground.show(in: webView)
+        notify(.firstContent)
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
