@@ -81,9 +81,7 @@ final class SidebarView: NSView, NSTableViewDataSource, NSTableViewDelegate {
         tableView.draggingDestinationFeedbackStyle = .gap
         scrollView.documentView = tableView
         scrollView.drawsBackground = false
-        scrollView.hasVerticalScroller = true
-        scrollView.autohidesScrollers = true
-        scrollView.scrollerStyle = .overlay
+        scrollView.hasVerticalScroller = false
         scrollView.automaticallyAdjustsContentInsets = false
         addSubview(scrollView)
         groupPopover.behavior = .transient
